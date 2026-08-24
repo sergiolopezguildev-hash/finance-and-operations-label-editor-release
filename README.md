@@ -2,7 +2,17 @@
 
 Extensión para **Visual Studio 2022** que gestiona archivos `.label.txt` de **Dynamics 365 Finance & Operations** como una tabla multilenguaje.
 
-En lugar de editar `ALG_BAL.en-US.label.txt`, `ALG_BAL.es.label.txt`, etc. por separado, ves todas las traducciones en la misma fila. Al guardar, solo se reescriben las líneas que cambian (diff pequeño en Git).
+En lugar de editar `ALG_BAL.en-US.label.txt`, `ALG_BAL.es.label.txt`, etc. por separado, ves todas las traducciones en la misma fila. Al guardar, solo se reescriben las líneas que cambian (diff pequeño en Git), salvo que uses **Ordenar alfabéticamente**.
+
+## Novedades de esta versión
+
+- Al pasar el cursor sobre `@Grupo:LabelId` (en X++, XML u otros archivos) aparece el texto de la label. Se puede desactivar y elegir qué idiomas muestra.
+- Si buscas un texto que **no existe** y pulsas **Nueva label**, el diálogo se rellena con esa búsqueda. Configurable: todos los idiomas, solo el fuente, o uno concreto.
+- Formato del Label ID sugerido: **PascalCase**, **camelCase** o conservar las mayúsculas del texto.
+- Las labels nuevas se insertan **en orden alfabético** (puedes elegir otro modo al crear).
+- **Analizar → Ordenar alfabéticamente**: reordena cada `.label.txt` por Label ID. Los comentarios van con su label.
+- Al **importar**, si el ID ya existe y el texto difiere, pregunta si conservas el actual o usas el importado.
+- Click derecho en X++: **Insertar label…** (buscar una existente) e **Insertar nueva label…**.
 
 ## Requisitos
 
@@ -70,14 +80,32 @@ Puedes mostrar u ocultar columnas en **Configuración → Columnas**.
 ## Crear una label
 
 1. **Nueva label**, **Ctrl+N** o **Insert** (con la ventana enfocada).
-2. Escribe el texto en el idioma fuente. El **Label ID** se sugiere en PascalCase (`Shipment tracking number` → `ShipmentTrackingNumber`).
+2. Escribe el texto en el idioma fuente. El **Label ID** se sugiere según **Configuración → Formato del Label ID sugerido**:
+   - **PascalCase** (por defecto): `CUSTOMER ORDER` → `CustomerOrder`
+   - **camelCase**: `CUSTOMER ORDER` → `customerOrder`
+   - **Conservar mayúsculas del texto**: `CUSTOMER ORDER` → `CUSTOMERORDER`
 3. El ID: letras, dígitos y `_`; máximo 50 caracteres; debe empezar por letra o `_`.
 4. Rellena solo los idiomas que quieras. Por defecto **no** se escriben idiomas vacíos.
 5. Si marcas **Rellenar idiomas vacíos**, se generan traducciones para el resto (sin pisar lo que ya hayas escrito).
-6. Elige dónde insertar (final del archivo, alfabético, después de otra label, en un grupo).
+6. Elige dónde insertar. Por defecto **alfabético**; también al final del archivo, después de otra label o en un grupo.
 7. **Crear**. Si está activa la confirmación, verás un preview de las líneas.
 
 La label queda en memoria hasta **Guardar**, salvo que tengas **Autoguardar**.
+
+### Crear desde una búsqueda sin resultados
+
+Si escribes en el buscador un texto que **no coincide con ninguna label** y pulsas **Nueva label**, el diálogo se abre con ese texto ya escrito (y el Label ID sugerido). Luego cambias lo que necesites.
+
+En **Configuración → Al crear desde el buscador**:
+
+| Opción | Qué rellena |
+| --- | --- |
+| **No rellenar** | El diálogo sale vacío |
+| **Solo idioma fuente** | Solo el idioma fuente (p. ej. `en-US`) |
+| **Todos los idiomas** | El mismo texto en todos los archivos cargados (por defecto) |
+| **Solo este idioma** | El idioma que elijas (`es`, `nl`, …) |
+
+Si la búsqueda ya encontró alguna label, no se rellena. Al crear desde el editor X++, se sigue usando el texto seleccionado solo en el idioma fuente.
 
 ## Insertar desde X++
 
@@ -91,6 +119,37 @@ Con un archivo `.xpp` o XML de F&O abierto y un grupo de labels cargado, click d
 Si tenías texto seleccionado, se sustituye por la referencia.
 
 Puedes ocultar estas dos opciones en **Configuración** de la herramienta o en **Herramientas → Opciones → FO Label Manager → Editor**.
+
+## Texto al pasar el cursor sobre @...
+
+Si dejas el cursor sobre una referencia `@Grupo:LabelId` en el editor, sale un tooltip con el texto de esa label:
+
+```
+@ALG_BAL:Amount
+en-US: Amount
+es: Importe
+```
+
+Funciona en **X++**, **XML de F&O** y otros archivos de texto. No hace falta tener la ventana de labels enfocada.
+
+El texto se busca así:
+
+1. En el grupo **cargado** (incluye cambios sin guardar).
+2. Si ese grupo no está abierto, en los `.label.txt` del **modelo** del archivo actual (`AxLabelFile`).
+
+Si la referencia no existe, no se muestra nada. Las labels de sistema sin dos puntos (`@SYS33480`) no se resuelven.
+
+En **Configuración**:
+
+| Opción | Qué hace |
+| --- | --- |
+| **Mostrar texto al pasar el cursor sobre @...** | Activa o desactiva el tooltip (por defecto activo). |
+| **Idiomas del tooltip → Todos los idiomas** | Muestra cada idioma encontrado. |
+| **Idiomas del tooltip → Solo estos idiomas** | Marca `en-US`, `es`, `nl`, … |
+
+También en **Herramientas → Opciones → FO Label Manager → Editor** (*Show label text on hover* y *Hover languages*, p. ej. `en-US;es`; vacío = todos).
+
+Tras instalar o actualizar el VSIX, **reinicia Visual Studio** para que el tooltip cargue.
 
 ## Editar textos
 
@@ -139,8 +198,9 @@ El motor es **offline** (literal + diccionario de términos + reutilizar textos 
 
 - Acepta el formato de la exportación (`LabelId,Language,Value`).
 - También un CSV/JSON “ancho”: `LabelId` + una columna o propiedad por idioma (`en-US`, `es`, …). El CSV admite `;` (Excel en español).
-- Crea labels nuevas y actualiza las que cambian.
+- Crea labels nuevas (en orden alfabético) y actualiza las que cambian.
 - No borra nada: valores vacíos, idiomas no cargados y Label ID inválidos se omiten.
+- Si el ID ya existe y el texto es distinto, un diálogo pide **conservar el actual** o **usar el importado**.
 - Si **Confirmar al aplicar cambios** está activo, muestra el preview. Con **Autoguardar**, escribe a disco después.
 
 ## Analizar
@@ -155,6 +215,7 @@ En la barra o en **Analizar**:
 | **Labels huérfanas** | Existen en un idioma secundario pero no en el primario. |
 | **Duplicados** | Mismo ID repetido o mismo texto en IDs distintos. |
 | **Labels similares** | Parecidos a la fila seleccionada (typos, casing). |
+| **Ordenar alfabéticamente** | Reordena cada archivo por Label ID. Los comentarios se mueven con su label. Si ya estaban ordenados, no hace nada. Git verá un diff grande si el fichero no estaba ordenado. |
 | **Referencias en el modelo** | Dónde se usa `@Grupo:LabelId` en el modelo del label. |
 | **Referencias en el entorno** | Igual, recorriendo `PackagesLocalDirectory` (todos los modelos del AOS). |
 | **Diagnóstico** | Registro técnico de la sesión. |
@@ -192,8 +253,11 @@ Los backups automáticos (si los activas en Opciones) van a `%TEMP%\FoLabelManag
 
 En la propia ventana, menú **Configuración**:
 
+- **Al crear desde el buscador** — no rellenar / idioma fuente / todos / un idioma concreto
+- **Formato del Label ID sugerido** — PascalCase, camelCase o conservar mayúsculas
 - Copiar `@...` al crear una label
 - Mostrar u ocultar **Insertar label** / **Insertar nueva label** en el click derecho del editor
+- **Mostrar texto al pasar el cursor sobre @...** y **Idiomas del tooltip**
 - Solo iconos en la barra
 - Autoguardar
 - Confirmar al aplicar cambios (crear, traducir, renombrar, eliminar, guardar, importar)
@@ -202,6 +266,10 @@ En la propia ventana, menú **Configuración**:
 Más opciones en **Herramientas → Opciones → FO Label Manager**:
 
 **General** — dónde insertar labels nuevas, conservar saltos de línea y encoding, backups, sugerir idiomas hermanos.
+
+**New label** — prellenado desde el buscador y el idioma concreto si eliges *SpecificLanguage*.
+
+**Editor** — estilo del Label ID sugerido; mostrar u ocultar Insertar label / Insertar nueva label; tooltip al pasar el cursor sobre `@Grupo:LabelId` y qué idiomas muestra.
 
 **Translation** — idioma fuente (`en-US` si está cargado), proveedor (`literal` por defecto), sobrescribir existentes (desactivado).
 
@@ -214,7 +282,8 @@ Más opciones en **Herramientas → Opciones → FO Label Manager**:
 - Trabaja con **todos** los idiomas del grupo abiertos. Si solo abres `es`, una label nueva no se creará en `en-US`.
 - Revisa el preview antes de Guardar en proyectos de cliente (o deja **Confirmar al aplicar cambios** activo).
 - No renombres IDs a la ligera: el X++ con `@Grupo:Id` antiguo dejará de resolver.
-- El editor no “arregla” el archivo: no reordena, no cambia casing, no toca comentarios ni líneas que no entiende.
+- Editar una celda no reescribe el resto del archivo (encoding, comentarios y líneas ajenas se conservan).
+- **Ordenar alfabéticamente** sí reordena todo el fichero: úsalo a propósito; Git verá un diff grande si no estaba ordenado.
 
 ## Solución de problemas
 
@@ -223,7 +292,9 @@ Más opciones en **Herramientas → Opciones → FO Label Manager**:
 | No aparece la ventana | Reinstala el VSIX, reinicia VS. Luego **Ver → Otras ventanas**. |
 | Detectar no encuentra nada | Abre la solución que contiene los `.label.txt` (a veces están en la raíz, no dentro de un proyecto). O usa **Abrir**. |
 | Insertar label no sale en el click derecho | Tiene que ser un `.xpp` o XML de F&O, con un grupo cargado. Comprueba **Configuración** que las opciones del menú del editor estén marcadas. |
+| No sale el texto al pasar el cursor sobre `@...` | Reinicia VS tras instalar. Comprueba **Configuración → Mostrar texto al pasar el cursor**. Detecta o abre el grupo, o edita un archivo del modelo que tenga `AxLabelFile`. No aplica a `@SYS12345` (sin `:`). |
+| Nueva label no rellena el texto buscado | Solo ocurre si la búsqueda **no** encuentra nada. Revisa **Configuración → Al crear desde el buscador**. |
 | Guardar está deshabilitado | No hay cambios pendientes, no hay workspace, o hay Label ID duplicados (con Autoguardar). |
 | Click derecho no copia | Selecciona primero la fila. La barra de estado debe mostrar `Copiado @...`. |
-| Git muestra un diff enorme | No debería: solo se reescriben líneas nuevas o editadas. Recarga y comprueba encoding/CRLF en Opciones. |
+| Git muestra un diff enorme | Al editar no debería: solo se reescriben líneas nuevas o cambiadas. Si usaste **Ordenar alfabéticamente**, el reordenado de todo el fichero es esperado. Si no, recarga y comprueba encoding/CRLF en Opciones. |
 | Referencias en el entorno no encuentra nada | Indica `PackagesLocalDirectory` (p. ej. `K:\AosService\PackagesLocalDirectory`) en Opciones. |
