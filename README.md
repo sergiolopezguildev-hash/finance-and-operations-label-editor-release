@@ -13,6 +13,7 @@ En lugar de editar `ALG_BAL.en-US.label.txt`, `ALG_BAL.es.label.txt`, etc. por s
 - **Analizar → Ordenar alfabéticamente**: reordena cada `.label.txt` por Label ID. Los comentarios van con su label.
 - Al **importar**, si el ID ya existe y el texto difiere, pregunta si conservas el actual o usas el importado.
 - Click derecho en X++: **Insertar label…** (buscar una existente) e **Insertar nueva label…**.
+- En la ventana **Propiedades** del diseñador, puedes crear o elegir una label y dejar `@Grupo:Id` en casillas como Label, HelpText o Caption (**Ctrl+Alt+Shift+I** / **P**).
 
 ## Requisitos
 
@@ -36,7 +37,7 @@ Cualquiera de estas opciones:
 
 ## Cargar labels
 
-Hace falta un **grupo** cargado (`ALG_BAL`, `ALG_LOG`, …) para editar, importar o insertar referencias en X++.
+Hace falta un **grupo** cargado (`ALG_BAL`, `ALG_LOG`, …) para editar, importar o insertar referencias en X++ / Propiedades.
 
 ### Detectar desde la solución
 
@@ -107,18 +108,28 @@ En **Configuración → Al crear desde el buscador**:
 
 Si la búsqueda ya encontró alguna label, no se rellena. Al crear desde el editor X++, se sigue usando el texto seleccionado solo en el idioma fuente.
 
-## Insertar desde X++
+## Insertar desde X++ o Propiedades
 
-Con un archivo `.xpp` o XML de F&O abierto y un grupo de labels cargado, click derecho en el editor:
+Con un archivo `.xpp`, un XML de F&O o el **diseñador** abierto, y un grupo de labels cargado:
 
 | Opción | Qué hace | Atajo |
 | --- | --- | --- |
-| **Insertar label…** | Buscador de labels existentes. Click en una fila (o Enter) inserta `@Grupo:LabelId` en el cursor. Si hay texto seleccionado, se usa como filtro. | **Ctrl+Alt+Shift+P** |
-| **Insertar nueva label…** | Crea una label nueva (mismo diálogo que en la ventana) e inserta la referencia. | **Ctrl+Alt+Shift+I** |
+| **Insertar label…** | Buscador de labels existentes. Click en una fila (o Enter) inserta `@Grupo:LabelId`. Si hay texto seleccionado, se usa como filtro. | **Ctrl+Alt+Shift+P** |
+| **Insertar nueva label…** | Crea una label nueva e inserta la referencia. | **Ctrl+Alt+Shift+I** |
 
-Si tenías texto seleccionado, se sustituye por la referencia.
+**En el editor** (X++ / XML): click derecho, o el atajo, con el cursor donde quieras la referencia. Si había texto seleccionado, se sustituye.
 
-Puedes ocultar estas dos opciones en **Configuración** de la herramienta o en **Herramientas → Opciones → FO Label Manager → Editor**.
+**En la ventana Propiedades** (casilla de un control, campo, menú, …):
+
+1. Abre el formulario / tabla / EDT en el diseñador.
+2. Selecciona el objeto.
+3. En **Propiedades**, pulsa la casilla **Label**, **HelpText**, **Caption**, etc. (puedes estar editándola).
+4. **Ctrl+Alt+Shift+I** para crear una label nueva, o **Ctrl+Alt+Shift+P** para elegir una existente.
+5. La referencia `@Grupo:LabelId` se escribe en esa propiedad.
+
+También en **Herramientas → F&O Label Manager**. Si no se puede escribir en la casilla, la referencia queda en el portapapeles para pegarla con Ctrl+V.
+
+Puedes ocultar las opciones del click derecho del editor en **Configuración** o en **Herramientas → Opciones → FO Label Manager → Editor**.
 
 ## Texto al pasar el cursor sobre @...
 
@@ -240,8 +251,8 @@ Los backups automáticos (si los activas en Opciones) van a `%TEMP%\FoLabelManag
 | --- | --- | --- |
 | **Ctrl+Shift+L** | Visual Studio | Abrir la ventana |
 | **Ctrl+Alt+Shift+N** | Visual Studio | Nueva label (abre la ventana si hace falta) |
-| **Ctrl+Alt+Shift+P** | Editor X++ / XML F&O | Insertar label existente |
-| **Ctrl+Alt+Shift+I** | Editor X++ / XML F&O | Insertar nueva label |
+| **Ctrl+Alt+Shift+P** | Editor X++ / XML F&O / **Propiedades** | Insertar label existente |
+| **Ctrl+Alt+Shift+I** | Editor X++ / XML F&O / **Propiedades** | Insertar nueva label |
 | **Ctrl+N** / **Insert** | Ventana de labels | Nueva label |
 | **Ctrl+S** | Ventana de labels | Guardar todo |
 | **Ctrl+F** | Ventana de labels | Ir al buscador |
@@ -292,6 +303,7 @@ Más opciones en **Herramientas → Opciones → FO Label Manager**:
 | No aparece la ventana | Reinstala el VSIX, reinicia VS. Luego **Ver → Otras ventanas**. |
 | Detectar no encuentra nada | Abre la solución que contiene los `.label.txt` (a veces están en la raíz, no dentro de un proyecto). O usa **Abrir**. |
 | Insertar label no sale en el click derecho | Tiene que ser un `.xpp` o XML de F&O, con un grupo cargado. Comprueba **Configuración** que las opciones del menú del editor estén marcadas. |
+| No inserta en la casilla de Propiedades | Selecciona primero la propiedad (Label, HelpText, …). Usa el atajo, no hace falta el click derecho. Si falla, la referencia queda en el portapapeles (Ctrl+V). |
 | No sale el texto al pasar el cursor sobre `@...` | Reinicia VS tras instalar. Comprueba **Configuración → Mostrar texto al pasar el cursor**. Detecta o abre el grupo, o edita un archivo del modelo que tenga `AxLabelFile`. No aplica a `@SYS12345` (sin `:`). |
 | Nueva label no rellena el texto buscado | Solo ocurre si la búsqueda **no** encuentra nada. Revisa **Configuración → Al crear desde el buscador**. |
 | Guardar está deshabilitado | No hay cambios pendientes, no hay workspace, o hay Label ID duplicados (con Autoguardar). |
