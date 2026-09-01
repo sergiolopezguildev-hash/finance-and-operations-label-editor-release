@@ -14,6 +14,8 @@ En lugar de editar `ALG_BAL.en-US.label.txt`, `ALG_BAL.es.label.txt`, etc. por s
 - Al **importar**, si el ID ya existe y el texto difiere, pregunta si conservas el actual o usas el importado.
 - Click derecho en X++: **Insertar label…** (buscar una existente) e **Insertar nueva label…**.
 - En la ventana **Propiedades** del diseñador, puedes crear o elegir una label y dejar `@Grupo:Id` en casillas como Label, HelpText o Caption (**Ctrl+Alt+Shift+I** / **P**).
+- **Rellenar vacías** y **Completar con IA**: traducen celdas vacías con OpenAI (opcional). No pisan textos existentes. La API key se guarda en el Administrador de credenciales de Windows. Sin clave (y sin modo Dictionary), esos botones quedan **deshabilitados**.
+- **Copias de seguridad** (desactivadas por defecto): al Guardar se guarda un snapshot en `%TEMP%`. Puedes restaurar uno anterior y limitar cuántos se conservan.
 
 ## Requisitos
 
@@ -87,9 +89,10 @@ Puedes mostrar u ocultar columnas en **Configuración → Columnas**.
    - **Conservar mayúsculas del texto**: `CUSTOMER ORDER` → `CUSTOMERORDER`
 3. El ID: letras, dígitos y `_`; máximo 50 caracteres; debe empezar por letra o `_`.
 4. Rellena solo los idiomas que quieras. Por defecto **no** se escriben idiomas vacíos.
-5. Si marcas **Rellenar idiomas vacíos**, se generan traducciones para el resto (sin pisar lo que ya hayas escrito).
-6. Elige dónde insertar. Por defecto **alfabético**; también al final del archivo, después de otra label o en un grupo.
-7. **Crear**. Si está activa la confirmación, verás un preview de las líneas.
+5. **Completar con IA** (junto al idioma fuente): escribe el texto en castellano (u otro idioma), deja el Label ID en inglés y pulsa el botón. Rellena **todos** los idiomas vacíos (incluido en-US) a partir de ese texto. No pisa lo que ya hayas escrito. Sin API key el botón está deshabilitado.
+6. Si marcas **Rellenar idiomas vacíos**, se generan traducciones **locales** (diccionario) para el resto, sin IA.
+7. Elige dónde insertar. Por defecto **alfabético**; también al final del archivo, después de otra label o en un grupo.
+8. **Crear**. Si está activa la confirmación, verás un preview de las líneas.
 
 La label queda en memoria hasta **Guardar**, salvo que tengas **Autoguardar**.
 
@@ -197,9 +200,39 @@ En **Configuración** puedes activar **Copiar @... al crear una label** para dej
 
 ## Traducir labels vacías
 
-**Traducir** solo rellena celdas vacías o labels nuevas. **No sobrescribe** traducciones existentes salvo que actives *Overwrite existing translations* en opciones.
+Al crear una label, la IA **no** se llama sola. El checkbox **Rellenar idiomas vacíos** usa solo el diccionario local. Si quieres IA en ese diálogo, pulsa **Completar con IA** (hace falta API key). En el grupo ya cargado, usa **Rellenar vacías**.
 
-El motor es **offline** (literal + diccionario de términos + reutilizar textos ya presentes). No llama a servicios externos.
+| Acción | Qué hace |
+| --- | --- |
+| **Rellenar vacías** | Todas las celdas vacías del grupo (idioma origen → idiomas cargados). |
+| **Rellenar vacías...** | Eliges origen, destinos y si quieres revisar. |
+| **Rellenar vacías y revisar** | Muestra un diálogo para aceptar, editar o rechazar cada traducción. |
+| **Traducir selección** | Solo las filas seleccionadas. |
+| **Completar con IA** | En **Nueva label**: traduce los idiomas vacíos a partir del texto que hayas escrito (p. ej. en `es`). |
+
+Solo toca celdas **vacías** (o labels que aún no existen en ese idioma). Nunca pisa un texto existente. No escribe a disco: hay que **Guardar**.
+
+Orden interno: traducción ya presente en el grupo → término exacto del diccionario → caché → IA (si está configurada). Agrupa por idioma, deduplica textos iguales y manda lotes (no una petición por label).
+
+Puedes **Cancelar** a mitad: se conservan las que ya hayan llegado.
+
+### API key (OpenAI)
+
+**Herramientas → Opciones → FO Label Manager → AI / Translation**:
+
+- Provider: OpenAI
+- API Key: se guarda en el **Administrador de credenciales de Windows**, no en el proyecto ni en el VSIX. La UI nunca muestra la clave completa.
+- Modelo (p. ej. `gpt-4o-mini`)
+- Modo: **Dictionary** (sin red), **AI**, o **AI + Dictionary** (recomendado)
+- **Test connection** / **Eliminar API key**
+
+Sin API key:
+
+- **Completar con IA** queda deshabilitado (el tooltip indica dónde configurar la clave).
+- **Rellenar vacías**, **Rellenar vacías...**, **Rellenar vacías y revisar**, **Traducir selección** y **Reintentar fallidas** también quedan deshabilitados, salvo que el modo sea **Dictionary** (solo diccionario local, sin red).
+- Al guardar la clave en Opciones, los botones se habilitan de inmediato.
+
+La barra de estado muestra `AI: Ready`, `AI: Not configured` o `AI: Off`.
 
 ## Importar y exportar
 
@@ -239,11 +272,19 @@ Para **Referencias en el entorno**, si no detecta la carpeta, indícala en **Her
 
 - **Guardar** / **Ctrl+S**: escribe los cambios pendientes. Si la confirmación está activa, muestra el preview exacto de líneas.
 - **Recargar**: vuelve a leer los archivos del disco. Pide confirmación si hay cambios sin guardar.
-- **Autoguardar** (**Configuración**): escribe a disco unos instantes después de editar, crear, renombrar o eliminar. No pide el preview de Guardar. Si hay Label ID duplicados, no guarda.
+- **Restaurar copia de seguridad...** (**Archivo**): lista los snapshots del grupo y sustituye en disco los `.label.txt` cargados. Pide confirmación. Los cambios sin guardar se pierden.
+- **Autoguardar** (**Configuración**): escribe a disco unos instantes después de editar, crear, renombrar o eliminar. No pide el preview de Guardar. Si hay Label ID duplicados, no guarda. Si las copias están activas, también genera snapshot.
 
 Si un archivo cambió fuera de Visual Studio, avisa antes de pisarlo.
 
-Los backups automáticos (si los activas en Opciones) van a `%TEMP%\FoLabelManager\backups`, nunca al lado del modelo F&O.
+### Copias de seguridad
+
+Desactivadas por defecto. **Herramientas → Opciones → FO Label Manager → General**:
+
+- **Automatic backups**: al Guardar (o Autoguardar) copia el estado *anterior* de los archivos a `%TEMP%\FoLabelManager\backups\{grupo}\{fecha}\`. Nunca junto al modelo F&O ni en Git.
+- **Maximum backups to keep**: cuántas copias conservar por grupo (1–100, por defecto 10). Las más antiguas se borran.
+
+**Archivo → Restaurar copia de seguridad...** para volver a una de ellas.
 
 ## Atajos
 
@@ -276,13 +317,15 @@ En la propia ventana, menú **Configuración**:
 
 Más opciones en **Herramientas → Opciones → FO Label Manager**:
 
-**General** — dónde insertar labels nuevas, conservar saltos de línea y encoding, backups, sugerir idiomas hermanos.
+**General** — dónde insertar labels nuevas, conservar saltos de línea y encoding, copias de seguridad (activarlas y cuántas guardar), sugerir idiomas hermanos.
 
 **New label** — prellenado desde el buscador y el idioma concreto si eliges *SpecificLanguage*.
 
 **Editor** — estilo del Label ID sugerido; mostrar u ocultar Insertar label / Insertar nueva label; tooltip al pasar el cursor sobre `@Grupo:LabelId` y qué idiomas muestra.
 
-**Translation** — idioma fuente (`en-US` si está cargado), proveedor (`literal` por defecto), sobrescribir existentes (desactivado).
+**Translation** — idioma fuente (`en-US` si está cargado), proveedor local (`literal` por defecto).
+
+**AI / Translation** — API key (Windows Credential Manager), modelo, modo Dictionary / AI / AI + Dictionary, lotes y concurrencia. Sin clave, Completar con IA y Rellenar vacías (modos AI) quedan deshabilitados.
 
 **Validation** — severidad de faltantes, duplicados, placeholders, etc.
 
@@ -310,3 +353,8 @@ Más opciones en **Herramientas → Opciones → FO Label Manager**:
 | Click derecho no copia | Selecciona primero la fila. La barra de estado debe mostrar `Copiado @...`. |
 | Git muestra un diff enorme | Al editar no debería: solo se reescriben líneas nuevas o cambiadas. Si usaste **Ordenar alfabéticamente**, el reordenado de todo el fichero es esperado. Si no, recarga y comprueba encoding/CRLF en Opciones. |
 | Referencias en el entorno no encuentra nada | Indica `PackagesLocalDirectory` (p. ej. `K:\AosService\PackagesLocalDirectory`) en Opciones. |
+| Rellenar vacías / Completar con IA están deshabilitados | No hay API key (o el modo no es Dictionary). **Herramientas → Opciones → FO Label Manager → AI / Translation**. La clave no se guarda en el repo. |
+| Rellenar vacías no pisa un texto | Es el comportamiento correcto. Solo rellena celdas vacías. |
+| La IA no se llama sola al crear una label | Correcto. Usa **Completar con IA** en el diálogo o **Rellenar vacías** después. |
+| No hay copias para restaurar | Están desactivadas por defecto. Activa **Automatic backups** en Opciones (General) y vuelve a Guardar. |
+| Restaurar no cambia un idioma | Esa copia no incluía ese archivo (p. ej. solo guardaste un idioma). |
